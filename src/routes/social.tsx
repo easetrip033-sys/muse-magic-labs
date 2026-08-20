@@ -34,8 +34,8 @@ const platformIcon = {
 
 function SocialPage() {
   const [platform, setPlatform] = useState<Platform>("Instagram");
-  const [tone, setTone] = useState(tones[0]);
-  const [language, setLanguage] = useState(languages[0]);
+  const [tone, setTone] = useState(tones[0]!);
+  const [language, setLanguage] = useState(languages[0]!);
   const [topic, setTopic] = useState("");
   const [result, setResult] = useState<ReturnType<typeof generatedPostSample> | null>(null);
   const [loading, setLoading] = useState(false);
