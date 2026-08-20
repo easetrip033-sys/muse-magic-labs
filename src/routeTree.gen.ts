@@ -10,11 +10,17 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ProductRouteImport } from './routes/product'
 import { Route as SocialRouteImport } from './routes/social'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProductRoute = ProductRouteImport.update({
+  id: '/product',
+  path: '/product',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SocialRoute = SocialRouteImport.update({
@@ -25,27 +31,31 @@ const SocialRoute = SocialRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/product': typeof ProductRoute
   '/social': typeof SocialRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/product': typeof ProductRoute
   '/social': typeof SocialRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/product': typeof ProductRoute
   '/social': typeof SocialRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/social'
+  fullPaths: '/' | '/product' | '/social'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/social'
-  id: '__root__' | '/' | '/social'
+  to: '/' | '/product' | '/social'
+  id: '__root__' | '/' | '/product' | '/social'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ProductRoute: typeof ProductRoute
   SocialRoute: typeof SocialRoute
 }
 
@@ -56,6 +66,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/product': {
+      id: '/product'
+      path: '/product'
+      fullPath: '/product'
+      preLoaderRoute: typeof ProductRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/social': {
@@ -70,6 +87,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ProductRoute: ProductRoute,
   SocialRoute: SocialRoute,
 }
 export const routeTree = rootRouteImport
