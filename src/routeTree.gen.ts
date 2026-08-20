@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ImagesRouteImport } from './routes/images'
 import { Route as ProductRouteImport } from './routes/product'
 import { Route as SocialRouteImport } from './routes/social'
+import { Route as StoriesRouteImport } from './routes/stories'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -34,18 +35,25 @@ const SocialRoute = SocialRouteImport.update({
   path: '/social',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StoriesRoute = StoriesRouteImport.update({
+  id: '/stories',
+  path: '/stories',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/images': typeof ImagesRoute
   '/product': typeof ProductRoute
   '/social': typeof SocialRoute
+  '/stories': typeof StoriesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/images': typeof ImagesRoute
   '/product': typeof ProductRoute
   '/social': typeof SocialRoute
+  '/stories': typeof StoriesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -53,13 +61,14 @@ export interface FileRoutesById {
   '/images': typeof ImagesRoute
   '/product': typeof ProductRoute
   '/social': typeof SocialRoute
+  '/stories': typeof StoriesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/images' | '/product' | '/social'
+  fullPaths: '/' | '/images' | '/product' | '/social' | '/stories'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/images' | '/product' | '/social'
-  id: '__root__' | '/' | '/images' | '/product' | '/social'
+  to: '/' | '/images' | '/product' | '/social' | '/stories'
+  id: '__root__' | '/' | '/images' | '/product' | '/social' | '/stories'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -67,6 +76,7 @@ export interface RootRouteChildren {
   ImagesRoute: typeof ImagesRoute
   ProductRoute: typeof ProductRoute
   SocialRoute: typeof SocialRoute
+  StoriesRoute: typeof StoriesRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -99,6 +109,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SocialRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/stories': {
+      id: '/stories'
+      path: '/stories'
+      fullPath: '/stories'
+      preLoaderRoute: typeof StoriesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -107,6 +124,7 @@ const rootRouteChildren: RootRouteChildren = {
   ImagesRoute: ImagesRoute,
   ProductRoute: ProductRoute,
   SocialRoute: SocialRoute,
+  StoriesRoute: StoriesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
