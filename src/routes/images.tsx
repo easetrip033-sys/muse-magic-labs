@@ -41,16 +41,40 @@ function ImagesPage() {
   const [style, setStyle] = useState(imageStyles[0]!);
   const [size, setSize] = useState(sizes[0]!);
   const [loading, setLoading] = useState(false);
-  const [generated, setGenerated] = useState<string[]>([]);
+  const [image, setImage] = useState<string | null>(null);
+  const [isFinal, setIsFinal] = useState(false);
 
-  const generate = () => {
+  const generate = async () => {
+    if (!prompt.trim()) {
+      toast.error("Describe the image you want first");
+      return;
+    }
     setLoading(true);
-    // API placeholder: POST /api/generate/image
-    setTimeout(() => {
-      setGenerated(swatches.slice(0, 4));
+    setIsFinal(false);
+    setImage(null);
+    try {
+      await streamImage(
+        "/api/generate-image",
+        `${prompt}. Visual style: ${style}. Aspect/size target: ${size} pixels.`,
+        (dataUrl, final) => {
+          setImage(dataUrl);
+          if (final) setIsFinal(true);
+        },
+      );
+      toast.success("Image ready");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Image generation failed");
+    } finally {
       setLoading(false);
-      toast.success("4 variations ready");
-    }, 1000);
+    }
+  };
+
+  const download = () => {
+    if (!image) return;
+    const a = document.createElement("a");
+    a.href = image;
+    a.download = `ai-image-${Date.now()}.png`;
+    a.click();
   };
 
   return (
