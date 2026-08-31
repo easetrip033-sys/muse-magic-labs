@@ -146,42 +146,47 @@ function ImagesPage() {
           </button>
         </GlassCard>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          {(generated.length ? generated : swatches).map((g, i) => (
-            <motion.div
-              key={g + i}
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: i * 0.05 }}
-              className="glass group relative overflow-hidden rounded-3xl p-2"
-            >
-              <div
-                className={`aspect-[4/5] rounded-2xl bg-gradient-to-br ${g} ${
-                  loading ? "animate-pulse" : ""
-                }`}
-              />
-              <div className="absolute inset-x-4 bottom-4 flex items-center justify-between opacity-0 transition-opacity group-hover:opacity-100">
-                <span className="glass rounded-full px-3 py-1 text-xs">{style}</span>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => toast.success("Added to favorites")}
-                    aria-label="Favorite"
-                    className="glass grid size-9 place-items-center rounded-full"
-                  >
-                    <Heart className="size-4" />
-                  </button>
-                  <button
-                    onClick={() => toast.success("Downloading HD image")}
-                    aria-label="Download HD"
-                    className="glass grid size-9 place-items-center rounded-full"
-                  >
-                    <Download className="size-4" />
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="glass group relative overflow-hidden rounded-3xl p-2"
+        >
+          {image ? (
+            <img
+              src={image}
+              alt={prompt || "AI generated image"}
+              className={`w-full rounded-2xl object-cover transition-[filter] duration-500 ${
+                isFinal ? "blur-0" : "blur-xl"
+              }`}
+            />
+          ) : (
+            <div
+              className={`aspect-[4/5] rounded-2xl bg-gradient-to-br ${swatches[0]} ${
+                loading ? "animate-pulse" : ""
+              }`}
+            />
+          )}
+          <div className="absolute inset-x-4 bottom-4 flex items-center justify-between opacity-0 transition-opacity group-hover:opacity-100">
+            <span className="glass rounded-full px-3 py-1 text-xs">{style}</span>
+            <div className="flex gap-2">
+              <button
+                onClick={() => toast.success("Added to favorites")}
+                aria-label="Favorite"
+                className="glass grid size-9 place-items-center rounded-full"
+              >
+                <Heart className="size-4" />
+              </button>
+              <button
+                onClick={download}
+                disabled={!image}
+                aria-label="Download HD"
+                className="glass grid size-9 place-items-center rounded-full disabled:opacity-40"
+              >
+                <Download className="size-4" />
+              </button>
+            </div>
+          </div>
+        </motion.div>
       </div>
     </div>
   );
