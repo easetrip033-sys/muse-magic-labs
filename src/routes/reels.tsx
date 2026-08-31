@@ -297,25 +297,37 @@ function ReelsPage() {
           {step === 4 && (
             <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
               <GlassCard>
-                <div className="gradient-brand relative grid aspect-[9/16] place-items-center rounded-2xl">
-                  <button
-                    onClick={() => toast("Playing preview")}
-                    aria-label="Play reel"
-                    className="glass grid size-16 place-items-center rounded-full"
-                  >
-                    <Play className="size-6" />
-                  </button>
-                  <span className="glass absolute bottom-4 left-4 right-4 rounded-xl px-3 py-2 text-center text-xs">
-                    {prompt || "Your generated reel"}
-                  </span>
+                <div className="gradient-brand relative grid aspect-[9/16] place-items-center overflow-hidden rounded-2xl">
+                  {videoUrl ? (
+                    <video
+                      src={videoUrl}
+                      controls
+                      autoPlay
+                      loop
+                      playsInline
+                      className="size-full rounded-2xl object-cover"
+                    />
+                  ) : (
+                    <>
+                      <span className="glass grid size-16 place-items-center rounded-full">
+                        <Play className="size-6" />
+                      </span>
+                      <span className="glass absolute bottom-4 left-4 right-4 rounded-xl px-3 py-2 text-center text-xs">
+                        {prompt || "Your generated reel"}
+                      </span>
+                    </>
+                  )}
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-3">
-                  <button
-                    onClick={() => toast.success("Downloading MP4 in 1080p")}
-                    className="gradient-brand flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold text-brand-foreground"
+                  <a
+                    href={videoUrl ?? "#"}
+                    download={`ai-reel-${Date.now()}.mp4`}
+                    className={`gradient-brand flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold text-brand-foreground ${
+                      videoUrl ? "" : "pointer-events-none opacity-40"
+                    }`}
                   >
                     <Download className="size-4" /> Download
-                  </button>
+                  </a>
                   <button
                     onClick={() => toast.success("Share link copied")}
                     className="flex items-center justify-center gap-2 rounded-xl border border-glass-border px-3 py-2.5 text-sm font-semibold hover:bg-accent"
