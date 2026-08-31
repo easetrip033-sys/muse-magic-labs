@@ -5,6 +5,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { GlassCard, PageHeader } from "@/components/app-shell";
 import { imageStyles } from "@/lib/mock";
+import { streamImage } from "@/lib/streamImage";
 
 export const Route = createFileRoute("/images")({
   head: () => ({
