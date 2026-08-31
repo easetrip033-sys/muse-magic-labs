@@ -21,6 +21,7 @@ import {
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { GlassCard, PageHeader } from "@/components/app-shell";
+import { generateDemoReel } from "@/lib/demoReel";
 import { imageStyles, languages, reelCategories, suggestedPrompts, voices } from "@/lib/mock";
 
 export const Route = createFileRoute("/reels")({
