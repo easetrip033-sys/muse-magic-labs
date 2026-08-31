@@ -69,21 +69,61 @@ function ReelsPage() {
   const [music, setMusic] = useState(musicMoods[0]!);
   const [ratio, setRatio] = useState(ratios[0]!);
   const [progress, setProgress] = useState(0);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (step !== 3) return;
-    setProgress(0);
-    const id = setInterval(() => {
-      setProgress((p) => {
-        if (p >= 100) {
-          clearInterval(id);
-          setStep(4);
-          return 100;
+    let cancelled = false;
+    setProgress(2);
+    setVideoUrl(null);
+
+    const run = async () => {
+      try {
+        const res = await fetch("/api/generate-video", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt: `${prompt || category}. Visual style: ${style}. Mood/music: ${music}. Vertical social reel.`,
+            durationSeconds: 8,
+            aspectRatio: ratio.startsWith("16:9") ? "16:9" : "9:16",
+          }),
+        });
+        const job = (await res.json()) as { id?: string; error?: string };
+        if (!res.ok || !job.id) throw new Error(job.error ?? "Video generation failed");
+
+        while (!cancelled) {
+          await new Promise((r) => setTimeout(r, 6000));
+          const poll = await fetch(`/api/generate-video?id=${job.id}`);
+          const status = (await poll.json()) as {
+            status?: string;
+            progress?: number;
+            error?: { message?: string };
+          };
+          if (typeof status.progress === "number") {
+            setProgress(Math.max(2, Math.min(99, status.progress)));
+          }
+          if (status.status === "completed") {
+            if (cancelled) return;
+            setProgress(100);
+            setVideoUrl(`/api/generate-video?id=${job.id}&content=1`);
+            setStep(4);
+            return;
+          }
+          if (status.status === "failed") {
+            throw new Error(status.error?.message ?? "Video generation failed");
+          }
         }
-        return p + 4;
-      });
-    }, 90);
-    return () => clearInterval(id);
+      } catch (e) {
+        if (cancelled) return;
+        toast.error(e instanceof Error ? e.message : "Video generation failed");
+        setStep(2);
+      }
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
 
   const next = () => setStep((s) => Math.min(s + 1, 4));
