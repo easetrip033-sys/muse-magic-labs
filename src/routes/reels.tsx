@@ -21,6 +21,7 @@ import {
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { GlassCard, PageHeader } from "@/components/app-shell";
+import { generateDemoReel } from "@/lib/demoReel";
 import { imageStyles, languages, reelCategories, suggestedPrompts, voices } from "@/lib/mock";
 
 export const Route = createFileRoute("/reels")({
@@ -68,8 +69,10 @@ function ReelsPage() {
   const [duration, setDuration] = useState(durations[1]!);
   const [music, setMusic] = useState(musicMoods[0]!);
   const [ratio, setRatio] = useState(ratios[0]!);
+  const [freeMode, setFreeMode] = useState(true);
   const [progress, setProgress] = useState(0);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [mode, setMode] = useState<"free" | "ai">("free");
 
   useEffect(() => {
     if (step !== 3) return;
@@ -77,18 +80,52 @@ function ReelsPage() {
     setProgress(2);
     setVideoUrl(null);
 
+    const vertical = !ratio.startsWith("16:9");
+
+    const runFree = async (notice?: string) => {
+      setMode("free");
+      if (notice) toast.info(notice);
+      const url = await generateDemoReel({
+        prompt,
+        category,
+        style,
+        music,
+        vertical,
+        seconds: Number.parseInt(duration, 10) >= 30 ? 12 : 8,
+        onProgress: (p) => {
+          if (!cancelled) setProgress(Math.max(2, Math.min(99, p)));
+        },
+      });
+      if (cancelled) {
+        URL.revokeObjectURL(url);
+        return;
+      }
+      setProgress(100);
+      setVideoUrl(url);
+      setStep(4);
+    };
+
     const run = async () => {
       try {
+        if (freeMode) {
+          await runFree();
+          return;
+        }
+        setMode("ai");
         const res = await fetch("/api/generate-video", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             prompt: `${prompt || category}. Visual style: ${style}. Mood/music: ${music}. Vertical social reel.`,
             durationSeconds: 8,
-            aspectRatio: ratio.startsWith("16:9") ? "16:9" : "9:16",
+            aspectRatio: vertical ? "9:16" : "16:9",
           }),
         });
         const job = (await res.json()) as { id?: string; error?: string };
+        if (res.status === 402 || res.status === 403) {
+          await runFree("AI credits unavailable — made a free studio reel instead.");
+          return;
+        }
         if (!res.ok || !job.id) throw new Error(job.error ?? "Video generation failed");
 
         while (!cancelled) {
@@ -115,7 +152,13 @@ function ReelsPage() {
         }
       } catch (e) {
         if (cancelled) return;
-        toast.error(e instanceof Error ? e.message : "Video generation failed");
+        if (!freeMode) {
+          void runFree(
+            `${e instanceof Error ? e.message : "AI video failed"} — switched to the free studio reel.`,
+          );
+          return;
+        }
+        toast.error(e instanceof Error ? e.message : "Reel generation failed");
         setStep(2);
       }
     };
@@ -125,6 +168,7 @@ function ReelsPage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
+
 
   const next = () => setStep((s) => Math.min(s + 1, 4));
   const back = () => setStep((s) => Math.max(s - 1, 0));
