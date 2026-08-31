@@ -5,6 +5,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { GlassCard, PageHeader } from "@/components/app-shell";
 import { imageStyles } from "@/lib/mock";
+import { streamImage } from "@/lib/streamImage";
 
 export const Route = createFileRoute("/images")({
   head: () => ({
@@ -41,16 +42,40 @@ function ImagesPage() {
   const [style, setStyle] = useState(imageStyles[0]!);
   const [size, setSize] = useState(sizes[0]!);
   const [loading, setLoading] = useState(false);
-  const [generated, setGenerated] = useState<string[]>([]);
+  const [image, setImage] = useState<string | null>(null);
+  const [isFinal, setIsFinal] = useState(false);
 
-  const generate = () => {
+  const generate = async () => {
+    if (!prompt.trim()) {
+      toast.error("Describe the image you want first");
+      return;
+    }
     setLoading(true);
-    // API placeholder: POST /api/generate/image
-    setTimeout(() => {
-      setGenerated(swatches.slice(0, 4));
+    setIsFinal(false);
+    setImage(null);
+    try {
+      await streamImage(
+        "/api/generate-image",
+        `${prompt}. Visual style: ${style}. Aspect/size target: ${size} pixels.`,
+        (dataUrl, final) => {
+          setImage(dataUrl);
+          if (final) setIsFinal(true);
+        },
+      );
+      toast.success("Image ready");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Image generation failed");
+    } finally {
       setLoading(false);
-      toast.success("4 variations ready");
-    }, 1000);
+    }
+  };
+
+  const download = () => {
+    if (!image) return;
+    const a = document.createElement("a");
+    a.href = image;
+    a.download = `ai-image-${Date.now()}.png`;
+    a.click();
   };
 
   return (
@@ -122,42 +147,47 @@ function ImagesPage() {
           </button>
         </GlassCard>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          {(generated.length ? generated : swatches).map((g, i) => (
-            <motion.div
-              key={g + i}
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: i * 0.05 }}
-              className="glass group relative overflow-hidden rounded-3xl p-2"
-            >
-              <div
-                className={`aspect-[4/5] rounded-2xl bg-gradient-to-br ${g} ${
-                  loading ? "animate-pulse" : ""
-                }`}
-              />
-              <div className="absolute inset-x-4 bottom-4 flex items-center justify-between opacity-0 transition-opacity group-hover:opacity-100">
-                <span className="glass rounded-full px-3 py-1 text-xs">{style}</span>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => toast.success("Added to favorites")}
-                    aria-label="Favorite"
-                    className="glass grid size-9 place-items-center rounded-full"
-                  >
-                    <Heart className="size-4" />
-                  </button>
-                  <button
-                    onClick={() => toast.success("Downloading HD image")}
-                    aria-label="Download HD"
-                    className="glass grid size-9 place-items-center rounded-full"
-                  >
-                    <Download className="size-4" />
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="glass group relative overflow-hidden rounded-3xl p-2"
+        >
+          {image ? (
+            <img
+              src={image}
+              alt={prompt || "AI generated image"}
+              className={`w-full rounded-2xl object-cover transition-[filter] duration-500 ${
+                isFinal ? "blur-0" : "blur-xl"
+              }`}
+            />
+          ) : (
+            <div
+              className={`aspect-[4/5] rounded-2xl bg-gradient-to-br ${swatches[0]} ${
+                loading ? "animate-pulse" : ""
+              }`}
+            />
+          )}
+          <div className="absolute inset-x-4 bottom-4 flex items-center justify-between opacity-0 transition-opacity group-hover:opacity-100">
+            <span className="glass rounded-full px-3 py-1 text-xs">{style}</span>
+            <div className="flex gap-2">
+              <button
+                onClick={() => toast.success("Added to favorites")}
+                aria-label="Favorite"
+                className="glass grid size-9 place-items-center rounded-full"
+              >
+                <Heart className="size-4" />
+              </button>
+              <button
+                onClick={download}
+                disabled={!image}
+                aria-label="Download HD"
+                className="glass grid size-9 place-items-center rounded-full disabled:opacity-40"
+              >
+                <Download className="size-4" />
+              </button>
+            </div>
+          </div>
+        </motion.div>
       </div>
     </div>
   );

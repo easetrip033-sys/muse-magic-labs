@@ -9,10 +9,14 @@ export const Route = createFileRoute("/api/generate-video")({
         const key = process.env["LOVABLE_API_KEY"];
         if (!key) return new Response("Missing LOVABLE_API_KEY", { status: 500 });
 
-        const { prompt, seconds = "8", size = "720x1280" } = (await request.json()) as {
+        const {
+          prompt,
+          durationSeconds = 8,
+          aspectRatio = "9:16",
+        } = (await request.json()) as {
           prompt: string;
-          seconds?: string;
-          size?: string;
+          durationSeconds?: number;
+          aspectRatio?: string;
         };
         if (!prompt?.trim()) {
           return new Response(JSON.stringify({ error: "Prompt is required" }), { status: 400 });
@@ -21,7 +25,17 @@ export const Route = createFileRoute("/api/generate-video")({
         const res = await fetch(GATEWAY, {
           method: "POST",
           headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ model: "google/veo-3.1-lite", prompt, seconds, size }),
+          body: JSON.stringify({
+            model: "google/veo-3.1-lite",
+            instances: [{ prompt }],
+            parameters: {
+              durationSeconds,
+              resolution: "720p",
+              aspectRatio,
+              sampleCount: 1,
+              generateAudio: true,
+            },
+          }),
         });
         const text = await res.text();
         if (!res.ok) {

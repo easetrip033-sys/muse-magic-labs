@@ -69,21 +69,61 @@ function ReelsPage() {
   const [music, setMusic] = useState(musicMoods[0]!);
   const [ratio, setRatio] = useState(ratios[0]!);
   const [progress, setProgress] = useState(0);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (step !== 3) return;
-    setProgress(0);
-    const id = setInterval(() => {
-      setProgress((p) => {
-        if (p >= 100) {
-          clearInterval(id);
-          setStep(4);
-          return 100;
+    let cancelled = false;
+    setProgress(2);
+    setVideoUrl(null);
+
+    const run = async () => {
+      try {
+        const res = await fetch("/api/generate-video", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt: `${prompt || category}. Visual style: ${style}. Mood/music: ${music}. Vertical social reel.`,
+            durationSeconds: 8,
+            aspectRatio: ratio.startsWith("16:9") ? "16:9" : "9:16",
+          }),
+        });
+        const job = (await res.json()) as { id?: string; error?: string };
+        if (!res.ok || !job.id) throw new Error(job.error ?? "Video generation failed");
+
+        while (!cancelled) {
+          await new Promise((r) => setTimeout(r, 6000));
+          const poll = await fetch(`/api/generate-video?id=${job.id}`);
+          const status = (await poll.json()) as {
+            status?: string;
+            progress?: number;
+            error?: { message?: string };
+          };
+          if (typeof status.progress === "number") {
+            setProgress(Math.max(2, Math.min(99, status.progress)));
+          }
+          if (status.status === "completed") {
+            if (cancelled) return;
+            setProgress(100);
+            setVideoUrl(`/api/generate-video?id=${job.id}&content=1`);
+            setStep(4);
+            return;
+          }
+          if (status.status === "failed") {
+            throw new Error(status.error?.message ?? "Video generation failed");
+          }
         }
-        return p + 4;
-      });
-    }, 90);
-    return () => clearInterval(id);
+      } catch (e) {
+        if (cancelled) return;
+        toast.error(e instanceof Error ? e.message : "Video generation failed");
+        setStep(2);
+      }
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
 
   const next = () => setStep((s) => Math.min(s + 1, 4));
@@ -257,25 +297,37 @@ function ReelsPage() {
           {step === 4 && (
             <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
               <GlassCard>
-                <div className="gradient-brand relative grid aspect-[9/16] place-items-center rounded-2xl">
-                  <button
-                    onClick={() => toast("Playing preview")}
-                    aria-label="Play reel"
-                    className="glass grid size-16 place-items-center rounded-full"
-                  >
-                    <Play className="size-6" />
-                  </button>
-                  <span className="glass absolute bottom-4 left-4 right-4 rounded-xl px-3 py-2 text-center text-xs">
-                    {prompt || "Your generated reel"}
-                  </span>
+                <div className="gradient-brand relative grid aspect-[9/16] place-items-center overflow-hidden rounded-2xl">
+                  {videoUrl ? (
+                    <video
+                      src={videoUrl}
+                      controls
+                      autoPlay
+                      loop
+                      playsInline
+                      className="size-full rounded-2xl object-cover"
+                    />
+                  ) : (
+                    <>
+                      <span className="glass grid size-16 place-items-center rounded-full">
+                        <Play className="size-6" />
+                      </span>
+                      <span className="glass absolute bottom-4 left-4 right-4 rounded-xl px-3 py-2 text-center text-xs">
+                        {prompt || "Your generated reel"}
+                      </span>
+                    </>
+                  )}
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-3">
-                  <button
-                    onClick={() => toast.success("Downloading MP4 in 1080p")}
-                    className="gradient-brand flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold text-brand-foreground"
+                  <a
+                    href={videoUrl ?? "#"}
+                    download={`ai-reel-${Date.now()}.mp4`}
+                    className={`gradient-brand flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold text-brand-foreground ${
+                      videoUrl ? "" : "pointer-events-none opacity-40"
+                    }`}
                   >
                     <Download className="size-4" /> Download
-                  </button>
+                  </a>
                   <button
                     onClick={() => toast.success("Share link copied")}
                     className="flex items-center justify-center gap-2 rounded-xl border border-glass-border px-3 py-2.5 text-sm font-semibold hover:bg-accent"
